@@ -12,7 +12,7 @@ namespace tests;
 
 class BaseCase extends \think\testing\TestCase
 {
-    protected $baseUrl = 'http://qianyan.uzipm.com';
+    protected $baseUrl = 'http://www.linco.com';
 
     public $docDbConfig = [
         'type'     => 'mysql',
@@ -32,29 +32,26 @@ class BaseCase extends \think\testing\TestCase
         'prefix'   => 'pm_',
     ];
 
+    public $cookieJar;
+    public $client;
     public function setUp()
     {
-
-        $this->url_user = "http://pm.yy.com/index.php/";
-        $this->url_www  = "http://pm.yy.com/index.php/";
-
-        //$this->client = new \GuzzleHttp\Client( [ 'base_uri' => 'http://www.s.cn', 'http_errors' => false,  ]);
         $this->cookieJar = new \GuzzleHttp\Cookie\CookieJar();
+        $cookie = \GuzzleHttp\Cookie\SetCookie::fromString('Set-Cookie: CnMQksource=wap.baidu.com; expires=Wed, 17-Jan-2019 04:11:07 GMT; Max-Age=864000; path=/; domain=.qy.uzipm.com');
+        $this->cookieJar->setCookie($cookie);
 
-        $options = [
-            'base_uri' => $this->url_user,
+        $config = [
+            'base_uri' => "",
             'timeout'  => 10.0,
             'cookies'  => $this->cookieJar,
             'cookies'  => true,
             //'proxy' => 'http://192.168.16.16:8888',
             // 'allow_redirects' => false,
         ];
-        //if(!file_exists(ROOT_PATH."/test")&&!file_exists(ROOT_PATH."/online")){
-        //$options['proxy'] = 'http://192.168.16.16:8888';
-        //}
 
-        $this->client = new \GuzzleHttp\Client($options);
+        $config['proxy'] = 'http://192.168.140.68:8888';
 
+        $this->client = new \GuzzleHttp\Client($config);
 
     }
 
@@ -86,34 +83,25 @@ class BaseCase extends \think\testing\TestCase
      * 'multipart' => [    [    'name'     => 'field_name',    'contents' => 'abc'    ]]
      * @return mixed
      */
-    function request($url, $method, $param, $header = [])
+    function request($uri, $method, $param, $header = [])
     {
 
         $method = strtolower($method);
-        //if(empty($type)){
-        //$type = ($method == 'post') ? 'form_params' : 'query';
-        //}
-        if (empty($header)) {
-            $header = [
-                'User-Agent'       => 'testing/1.0',
-                'X-Wtfs-Signature' => 'testtesttesttesttest-test-test-test-testtesttesttest',
-                'Referer'          => 'http://pm.yz314.com//front/view/app/user/bindPhone.html',
-            ];
+
+        $options            = [];
+        $options['cookies'] = $this->cookieJar;
+        $options['headers'] = $header;
+        $options['verify']  = false;
+
+
+        if (is_array($param)) {
+            $options['form_params'] = $param;
+        } elseif (is_string($param)) {
+            $options['body'] = $param;
         }
 
-        if ($method == 'post') {
-            $r = $this->client->request('POST', $this->url_user . $url, [
-                "form_params" => $param,
-                'cookies'     => $this->cookieJar,
-                'headers'     => $header,
-            ]);
-        } else {
-            $r = $this->client->request('GET', $this->url_user . $url, [
-                'query'   => $param,
-                'cookies' => $this->cookieJar,
-                'headers' => $header,
-            ]);
-        }
+        $method = strtoupper($method);
+        $r      = $this->client->request($method, $uri, $options);
         return $r;
 
     }
@@ -184,6 +172,29 @@ class BaseCase extends \think\testing\TestCase
 
     }
 
+    function send_http_raw($host,$raw)
+    {
+        $fp = fsockopen($host, 80, $errno, $errstr, 30);
+        if (!$fp) {
+            return array(
+                'status' => 'error',
+                'error'  => "$errstr ($errno)"
+            );
+        }
+        fwrite($fp, $raw);
+        $result = '';
+        while (!feof($fp)) {
+            $result .= fread($fp, 512);
+        }
+        fclose($fp);
+        $result = explode("\r\n\r\n", $result, 2);
+        return array(
+            'status'  => 'ok',
+            'header'  => isset($result[0]) ? $result[0] : '',
+            'content' => isset($result[1]) ? $result[1] : ''
+        );
+    }
+
     function socket_post($url, $data, $referer = '')
     {
         if (!is_array($data)) {
@@ -211,14 +222,12 @@ POST {$path} HTTP/1.1
 Host: {$host}
 Accept: text/plain, text/html
 Accept-Language: zh-CN,zh;q=0.8
-Content-Type: application/x-www-form-urlencodem
-Cookie: token=value; pub_cookietime=2592000; pub_sauth1=value; pub_sauth2=value
+Content-Type: application/x-www-form-urlencoded; charset=UTF-8
 User-Agent: Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1
 Content-Length: {$length}
 Pragma: no-cache
 Cache-Control: no-cache
 Connection: close
-Accept-Encoding: gzip, deflate
 Cookie: baJf_2132_forum_lastvisit=D_36_1423124866D_2_1423125031;
 
 {$data}
@@ -249,10 +258,10 @@ HEADER;
         // var_dump($result);exit('x');
         // return as structured array:
 
-        $resp_body = $this->unchunk($result[1], (bool)stristr($result[0], 'chunk'), (bool)stristr($result[0], 'gzip'));
-
-        echo $resp_body;
-        exit;
+//        $resp_body = $this->unchunk($result[1], (bool)stristr($result[0], 'chunk'), (bool)stristr($result[0], 'gzip'));
+//
+//        echo $resp_body;
+//        exit;
         return array(
             'status'  => 'ok',
             'header'  => isset($result[0]) ? $result[0] : '',
@@ -261,17 +270,6 @@ HEADER;
     }
 
 
-    function sendRequestByRaw()
-    {
-        $data               = [];
-        $data['mobile']     = '13800010017';
-        $data['verifycode'] = 12345;
-        $data['pwd']        = 123456;
-
-        $r = $this->socket_post('http://qianyan.uzipm.com/app/index.php?i=16&c=entry&m=ewei_shopv2&do=mobile&r=account.register', $data);
-        var_dump($r);
-        exit;
-    }
 
     function sendRequestByRaw2()
     {
