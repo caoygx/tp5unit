@@ -4,6 +4,12 @@ thinkphp5，phpunit，Guzzle
 运行方法 
 ./think unit 
 
+1.只测试某个文件
+./think unit  testGetSubsidy 或 ./think unit  testGetSubsidy.php
+
+2.只测试某个方法
+./think unit --filter Subsidy
+
 编写测试代码
 ```
 function testRegister(){
