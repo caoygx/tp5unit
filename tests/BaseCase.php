@@ -12,7 +12,7 @@ namespace tests;
 
 class BaseCase extends \think\testing\TestCase
 {
-    protected $baseUrl = 'http://www.linco.com';
+    protected $baseUrl = 'http://www.tesuo.com';
 
     public $docDbConfig = [
         'type'     => 'mysql',
